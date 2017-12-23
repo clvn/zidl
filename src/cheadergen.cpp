@@ -1,0 +1,191 @@
+#include <iostream>
+#include <cassert>
+#include <fstream>
+#include <algorithm>
+#include <cctype>
+#include "zidlparser.h"
+#include "zidlintermediate.h"
+#include "zidlgenerator.h"
+#include "zidlhelper.h"
+
+using std::cout;
+using std::endl;
+using namespace zidlhelper;
+
+struct cheadergen : zidlgenerator {
+
+	void generate_classmember(std::ostream& strm, int level, zidlclassmember& m) {
+		std::string membername = camel_to_posix(m.name);
+		strm << indent(level) << get_c_type_name(m.membertype) << " " << membername << ";" << endl;
+	}
+
+	void generate_classmethod(std::ostream& strm, int level, zidlclassmethod& m) {
+		zidlclass& c = (zidlclass&)*m.parent;
+
+		if (m.is_callback) {
+			strm << indent(level) << " typedef " << get_c_type_name(m.returntype);
+			strm << " (*" << get_c_class_name(m) << ")(";
+		} else {
+			strm << indent(level) << get_c_type_name(m.returntype);
+			strm << " " << get_c_method_name(m) << "(";
+		}
+
+		// add self argument on non-static member methods
+		if (!m.is_static) 
+			strm << get_c_class_name(c) << "* " << camel_to_posix(c.name);
+
+		for (std::vector<zidlargument>::const_iterator i = m.arguments.begin(); i != m.arguments.end(); ++i) {
+			if (!m.is_static || i != m.arguments.begin())
+				strm << ", ";
+			strm << get_c_type_name(i->argtype);
+			if (!i->argtype.is_array && i->argtype.is_out && i->argtype.name != "string")
+				strm << "*";
+			strm << " " << i->name;
+		}
+		strm << ");" << endl;
+	}
+
+	void generate_classunion(std::ostream& strm, int level, zidlclassunion& u) {
+		strm << indent(level) << "union {" << endl;
+		for (std::vector<zidlclassmember*>::iterator i = u.members.begin(); i != u.members.end(); ++i) {
+			generate_classmember(strm, level + 1, **i);
+		}
+
+		strm << indent(level) << "};" << endl;
+	}
+
+	void generate_class(std::ostream& strm, int level, zidlclass& c) {
+		for (std::vector<zidlclass*>::iterator i = c.classes.begin(); i != c.classes.end(); ++i) {
+			generate_class(strm, level, (zidlclass&)**i);
+		}
+
+		strm << endl << indent(level) << "/" << "* class " << c.name << " *" << "/" << endl << endl;
+
+		if (!c.members.empty() || !c.unions.empty()) {
+			strm << indent(level) << "struct " << get_c_class_prefix(c) << " {" << endl;
+			for (std::vector<zidlclassmember*>::iterator i = c.members.begin(); i != c.members.end(); ++i) {
+				generate_classmember(strm, level + 1, **i);
+			}
+
+			for (std::vector<zidlclassunion*>::iterator i = c.unions.begin(); i != c.unions.end(); ++i) {
+				generate_classunion(strm, level + 1, **i);
+			}
+
+			strm << indent(level) << "};" << endl;
+		}
+
+		for (std::vector<zidlclassmethod*>::iterator i = c.methods.begin(); i != c.methods.end(); ++i) {
+			generate_classmethod(strm, level, **i);
+		}
+	}
+
+	void generate_classes(std::ostream& strm, zidlnamespace& ns) {
+		for (std::vector<zidlunit*>::iterator i = ns.content.begin(); i != ns.content.end(); ++i) {
+			switch ((*i)->type) {
+				case zidltype_class:
+					generate_class(strm, 0, (zidlclass&)**i);
+					break;
+				case zidltype_classmethod:
+					generate_classmethod(strm, 0, (zidlclassmethod&)**i);
+					break;
+			}
+		}
+	}
+
+	void generate_forwards(std::ostream& strm, zidlclass& c) {
+		for (std::vector<zidlclass*>::iterator i = c.classes.begin(); i != c.classes.end(); ++i) {
+			generate_forwards(strm, **i);
+		}
+
+		std::string prefixname = get_c_class_prefix(c);
+
+		// spit out forward declaration
+		if (c.members.empty() && c.unions.empty()) {
+			std::string definename = prefixname;
+			std::transform(definename.begin(), definename.end(), definename.begin(), (int(*)(int))std::toupper);
+			
+			strm << endl;
+			strm << "#if !defined(NO_" << definename << "_TYPE)" << endl;
+			strm << "typedef struct _" << prefixname << " " << prefixname << "_t;" << endl;
+			strm << "#endif" << endl;
+		} else {
+			strm << "typedef struct " << prefixname << " " << prefixname << "_t;" << endl;
+		}
+	}
+
+	void generate_forwards(std::ostream& strm, zidlnamespace& ns) {
+		// flatten classes 
+		for (std::vector<zidlclass*>::iterator i = ns.classes.begin(); i != ns.classes.end(); ++i) {
+			generate_forwards(strm, **i);
+		}
+	}
+
+	void generate_enum(std::ostream& strm, zidlenum& e) {
+		std::string enumprefix = e.parent->name;
+
+		strm << endl;
+		if (e.name.empty()) {
+			strm << "enum {" << endl;
+		} else {
+			enumprefix += "_" + camel_to_posix(e.name);
+			strm << "enum " << enumprefix << " {" << endl;
+		}
+
+		for (std::vector<zidlenumvalue>::const_iterator i = e.values.begin(); i != e.values.end(); ++i) {
+			strm << indent(1) << enumprefix << "_" << camel_to_posix(i->name) << " = 0x" << std::hex << i->value << "," << endl;
+		}
+
+		strm << "};" << endl;
+	}
+
+	void generate_enums(std::ostream& strm, zidlnamespace& ns) {
+		for (std::vector<zidlenum*>::iterator i = ns.enums.begin(); i != ns.enums.end(); ++i) {
+			generate_enum(strm, **i);
+		}
+	}
+
+	// Header
+
+	void generate_header(std::ostream& strm, zidlnamespace& ns) {
+		strm << "/" << "* autogenerated by zidl 2 *" << "/" << endl;
+		strm << "#if !defined(__" << ns.name << "_H)" << endl;
+		strm << "#define __" << ns.name << "_H" << endl << endl;
+
+		strm << "#if defined(__cplusplus)" << endl;
+		strm << "extern \"C\" {" << endl;
+		strm << "#endif" << endl << endl;
+
+		if (ns.parent->type == zidltype_program) {
+			zidlprogram* prg = (zidlprogram*)ns.parent;
+			for (std::vector<std::string>::iterator i = prg->includes.begin(); i != prg->includes.end(); ++i) {
+				strm << "#include \"" << *i << "\"" << endl << endl;
+			}
+		}
+	}
+
+	void generate_footer(std::ostream& strm, zidlnamespace& ns) {
+		strm << endl;
+		strm << "#if defined(__cplusplus)" << endl;
+		strm << "} // extern \"C\"" << endl;
+		strm << "#endif" << endl;
+		strm << "" << endl;
+		strm << "#endif // __" << ns.name << "_H" << endl;
+	}
+
+	void generate(std::ostream& strm, zidlprogram& prog) {
+		for (std::vector<zidlnamespace*>::const_iterator i = prog.namespaces.begin(); i != prog.namespaces.end(); ++i) {
+			zidlnamespace& ns = **i;
+			if (ns.is_imported) continue;
+			generate_header(strm, ns);
+			generate_forwards(strm, ns);
+			generate_enums(strm, ns);
+			generate_classes(strm, ns);
+			generate_footer(strm, ns);
+		}
+	}
+
+};
+
+zidlgenerator* zidlgenerator::create_cheadergen() {
+	return new cheadergen();
+}
