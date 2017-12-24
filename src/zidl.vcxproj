@@ -14,16 +14,17 @@
     <ProjectGuid>{F4625AC9-220A-4A04-B4BF-B07C22EF791D}</ProjectGuid>
     <RootNamespace>zidl</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v110_xp</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v110_xp</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -88,8 +89,6 @@
     <ClCompile Include="cdefgen.cpp" />
     <ClCompile Include="cheadergen.cpp" />
     <ClCompile Include="dotnetgen.cpp" />
-    <ClCompile Include="jsonclientgen.cpp" />
-    <ClCompile Include="jsonservergen.cpp" />
     <ClCompile Include="luagen.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pygen.cpp" />
