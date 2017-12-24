@@ -201,8 +201,8 @@ argumentbody(A) ::= membertype(B) IDENTIFIER(C) argumentdefault(D) . {
 	if (D != 0) A->modifiers.push_back(D);
 }
 
-argumentdefault ::= . { 
-	/* OK */
+argumentdefault(A) ::= . { 
+	A = 0;
 }
 
 argumentdefault(A) ::= EQ DIGITS(B) . {
@@ -312,8 +312,8 @@ methodmodifier(A) ::= STATIC . {
 	A->name = "static";
 }
 
-methodmodifier ::= . {
-	/* OK */
+methodmodifier(A) ::= . {
+	A = 0;
 }
 
 memberbody(A) ::= MEMBER membertype(B) IDENTIFIER(C) LINEBREAK . {

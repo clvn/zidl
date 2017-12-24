@@ -1,10 +1,29 @@
-/* Driver template for the LEMON parser generator.
-** The author disclaims copyright to this source code.
+/*
+** 2000-05-29
+**
+** The author disclaims copyright to this source code.  In place of
+** a legal notice, here is a blessing:
+**
+**    May you do good and not evil.
+**    May you find forgiveness for yourself and forgive others.
+**    May you share freely, never taking more than you give.
+**
+*************************************************************************
+** Driver template for the LEMON parser generator.
+**
+** The "lemon" program processes an LALR(1) input grammar file, then uses
+** this template to construct a parser.  The "lemon" program inserts text
+** at each "%%" line.  Also, any "P-a-r-s-e" identifer prefix (without the
+** interstitial "-" characters) contained in this template is changed into
+** the value of the %name directive from the grammar.  Otherwise, the content
+** of this template is copied straight through into the generate parser
+** source file.
+**
+** The following is the concatenation of all %include directives from the
+** input grammar file:
 */
-/* First off, code is included that follows the "include" declaration
-** in the input grammar file. */
 #include <stdio.h>
-#include <assert.h>
+/************ Begin %include sections from the grammar ************************/
 #line 7 "zidl.y"
 
 #include <vector>
@@ -15,59 +34,69 @@
 #include <cassert>
 #include <cstdlib>
 #include "zidlparser.h"
-#line 19 "zidl.c"
-/* Next is all token values, in a form suitable for use by makeheaders.
-** This section will be null unless lemon is run with the -m switch.
-*/
-/* 
-** These constants (all generated automatically by the parser generator)
-** specify the various kinds of tokens (terminals) that the parser
-** understands. 
-**
-** Each symbol here is a terminal symbol in the grammar.
-*/
-/* Make sure the INTERFACE macro is defined.
-*/
-#ifndef INTERFACE
-# define INTERFACE 1
-#endif
-/* The next thing included is series of defines which control
+#line 38 "zidl.c"
+/**************** End of %include directives **********************************/
+/* These constants specify the various numeric values for terminal symbols
+** in a format understandable to "makeheaders".  This section is blank unless
+** "lemon" is run with the "-m" command-line option.
+***************** Begin makeheaders token definitions *************************/
+/**************** End makeheaders token definitions ***************************/
+
+/* The next sections is a series of control #defines.
 ** various aspects of the generated parser.
-**    YYCODETYPE         is the data type used for storing terminal
-**                       and nonterminal numbers.  "unsigned char" is
-**                       used if there are fewer than 250 terminals
-**                       and nonterminals.  "int" is used otherwise.
-**    YYNOCODE           is a number of type YYCODETYPE which corresponds
-**                       to no legal terminal or nonterminal number.  This
-**                       number is used to fill in empty slots of the hash 
-**                       table.
+**    YYCODETYPE         is the data type used to store the integer codes
+**                       that represent terminal and non-terminal symbols.
+**                       "unsigned char" is used if there are fewer than
+**                       256 symbols.  Larger types otherwise.
+**    YYNOCODE           is a number of type YYCODETYPE that is not used for
+**                       any terminal or nonterminal symbol.
 **    YYFALLBACK         If defined, this indicates that one or more tokens
-**                       have fall-back values which should be used if the
-**                       original value of the token will not parse.
-**    YYACTIONTYPE       is the data type used for storing terminal
-**                       and nonterminal numbers.  "unsigned char" is
-**                       used if there are fewer than 250 rules and
-**                       states combined.  "int" is used otherwise.
-**    ParseTOKENTYPE     is the data type used for minor tokens given 
-**                       directly to the parser from the tokenizer.
-**    YYMINORTYPE        is the data type used for all minor tokens.
+**                       (also known as: "terminal symbols") have fall-back
+**                       values which should be used if the original symbol
+**                       would not parse.  This permits keywords to sometimes
+**                       be used as identifiers, for example.
+**    YYACTIONTYPE       is the data type used for "action codes" - numbers
+**                       that indicate what to do in response to the next
+**                       token.
+**    ParseTOKENTYPE     is the data type used for minor type for terminal
+**                       symbols.  Background: A "minor type" is a semantic
+**                       value associated with a terminal or non-terminal
+**                       symbols.  For example, for an "ID" terminal symbol,
+**                       the minor type might be the name of the identifier.
+**                       Each non-terminal can have a different minor type.
+**                       Terminal symbols all have the same minor type, though.
+**                       This macros defines the minor type for terminal 
+**                       symbols.
+**    YYMINORTYPE        is the data type used for all minor types.
 **                       This is typically a union of many types, one of
 **                       which is ParseTOKENTYPE.  The entry in the union
-**                       for base tokens is called "yy0".
+**                       for terminal symbols is called "yy0".
 **    YYSTACKDEPTH       is the maximum depth of the parser's stack.  If
 **                       zero the stack is dynamically sized using realloc()
 **    ParseARG_SDECL     A static variable declaration for the %extra_argument
 **    ParseARG_PDECL     A parameter declaration for the %extra_argument
 **    ParseARG_STORE     Code to store %extra_argument into yypParser
 **    ParseARG_FETCH     Code to extract %extra_argument from yypParser
-**    YYNSTATE           the combined number of states.
-**    YYNRULE            the number of rules in the grammar
 **    YYERRORSYMBOL      is the code number of the error symbol.  If not
 **                       defined, then do no error processing.
+**    YYNSTATE           the combined number of states.
+**    YYNRULE            the number of rules in the grammar
+**    YY_MAX_SHIFT       Maximum value for shift actions
+**    YY_MIN_SHIFTREDUCE Minimum value for shift-reduce actions
+**    YY_MAX_SHIFTREDUCE Maximum value for shift-reduce actions
+**    YY_MIN_REDUCE      Minimum value for reduce actions
+**    YY_MAX_REDUCE      Maximum value for reduce actions
+**    YY_ERROR_ACTION    The yy_action[] code for syntax error
+**    YY_ACCEPT_ACTION   The yy_action[] code for accept
+**    YY_NO_ACTION       The yy_action[] code for no-op
 */
+#ifndef INTERFACE
+# define INTERFACE 1
+#endif
+/************* Begin control #defines *****************************************/
 #define YYCODETYPE unsigned char
 #define YYNOCODE 65
-#define YYACTIONTYPE unsigned char
+#define YYACTIONTYPE unsigned short int
 #define ParseTOKENTYPE  token 
 typedef union {
   int yyinit;
@@ -81,15 +110,17 @@ typedef union {
 #define ParseARG_PDECL , parsecontext* context 
 #define ParseARG_FETCH  parsecontext* context  = yypParser->context 
 #define ParseARG_STORE yypParser->context  = context 
-#define YYNSTATE 132
-#define YYNRULE 63
-#define YY_NO_ACTION      (YYNSTATE+YYNRULE+2)
-#define YY_ACCEPT_ACTION  (YYNSTATE+YYNRULE+1)
-#define YY_ERROR_ACTION   (YYNSTATE+YYNRULE)
-
-/* The yyzerominor constant is used to initialize instances of
-** YYMINORTYPE objects to zero. */
-static const YYMINORTYPE yyzerominor = { 0 };
+#define YYNSTATE             82
+#define YYNRULE              63
+#define YY_MAX_SHIFT         81
+#define YY_MIN_SHIFTREDUCE   132
+#define YY_MAX_SHIFTREDUCE   194
+#define YY_MIN_REDUCE        195
+#define YY_MAX_REDUCE        257
+#define YY_ERROR_ACTION      258
+#define YY_ACCEPT_ACTION     259
+#define YY_NO_ACTION         260
+/************* End control #defines *******************************************/
 
 /* Define the yytestcase() macro to be a no-op if is not already defined
 ** otherwise.
@@ -112,29 +143,37 @@ static const YYMINORTYPE yyzerominor = { 0 };
 ** Suppose the action integer is N.  Then the action is determined as
 ** follows
 **
-**   0 <= N < YYNSTATE                  Shift N.  That is, push the lookahead
+**   0 <= N <= YY_MAX_SHIFT             Shift N.  That is, push the lookahead
 **                                      token onto the stack and goto state N.
 **
-**   YYNSTATE <= N < YYNSTATE+YYNRULE   Reduce by rule N-YYNSTATE.
+**   N between YY_MIN_SHIFTREDUCE       Shift to an arbitrary state then
+**     and YY_MAX_SHIFTREDUCE           reduce by rule N-YY_MIN_SHIFTREDUCE.
 **
-**   N == YYNSTATE+YYNRULE              A syntax error has occurred.
+**   N between YY_MIN_REDUCE            Reduce by rule N-YY_MIN_REDUCE
+**     and YY_MAX_REDUCE
 **
-**   N == YYNSTATE+YYNRULE+1            The parser accepts its input.
+**   N == YY_ERROR_ACTION               A syntax error has occurred.
 **
-**   N == YYNSTATE+YYNRULE+2            No such action.  Denotes unused
+**   N == YY_ACCEPT_ACTION              The parser accepts its input.
+**
+**   N == YY_NO_ACTION                  No such action.  Denotes unused
 **                                      slots in the yy_action[] table.
 **
 ** The action table is constructed as a single large table named yy_action[].
-** Given state S and lookahead X, the action is computed as
+** Given state S and lookahead X, the action is computed as either:
 **
-**      yy_action[ yy_shift_ofst[S] + X ]
+**    (A)   N = yy_action[ yy_shift_ofst[S] + X ]
+**    (B)   N = yy_default[S]
 **
-** If the index value yy_shift_ofst[S]+X is out of range or if the value
-** yy_lookahead[yy_shift_ofst[S]+X] is not equal to X or if yy_shift_ofst[S]
-** is equal to YY_SHIFT_USE_DFLT, it means that the action is not in the table
-** and that yy_default[S] should be used instead.  
+** The (A) formula is preferred.  The B formula is used instead if:
+**    (1)  The yy_shift_ofst[S]+X value is out of range, or
+**    (2)  yy_lookahead[yy_shift_ofst[S]+X] is not equal to X, or
+**    (3)  yy_shift_ofst[S] equal YY_SHIFT_USE_DFLT.
+** (Implementation note: YY_SHIFT_USE_DFLT is chosen so that
+** YY_SHIFT_USE_DFLT+X will be out of range for all possible lookaheads X.
+** Hence only tests (1) and (2) need to be evaluated.)
 **
-** The formula above is for computing the action when the lookahead is
+** The formulas above are for computing the action when the lookahead is
 ** a terminal symbol.  If the lookahead is a non-terminal (as occurs after
 ** a reduce action) then the yy_reduce_ofst[] array is used in place of
 ** the yy_shift_ofst[] array and YY_REDUCE_USE_DFLT is used in place of
@@ -150,81 +189,84 @@ static const YYMINORTYPE yyzerominor = { 0 };
 **  yy_reduce_ofst[]   For each state, the offset into yy_action for
 **                     shifting non-terminals after a reduce.
 **  yy_default[]       Default action for each state.
-*/
+**
+*********** Begin parsing tables **********************************************/
+#define YY_ACTTAB_COUNT (158)
 static const YYACTIONTYPE yy_action[] = {
- /*     0 */    99,  132,   71,  131,   77,   61,   53,   45,   97,   96,
- /*    10 */    59,   98,  124,   44,   27,   48,   81,  118,    5,   25,
- /*    20 */    86,   76,  102,  101,  100,   94,   93,   92,   91,   90,
- /*    30 */    89,   87,   47,   81,  112,    5,   28,   86,   34,   81,
- /*    40 */    95,    5,  115,   82,  151,  151,   31,  103,  105,   76,
- /*    50 */    70,   18,   72,   10,  196,   39,    8,   57,  123,  110,
- /*    60 */    16,   30,    4,   31,   33,  104,    5,   52,   42,  106,
- /*    70 */    63,   62,    5,   54,   84,    5,   24,    4,  121,    9,
- /*    80 */   129,    8,  113,    7,  117,   78,   26,   83,  122,   80,
- /*    90 */    75,    3,   74,   11,   73,   12,   19,    6,   66,   35,
- /*   100 */    15,  128,   69,   88,   68,   79,   85,   21,   20,   65,
- /*   110 */    40,  130,  127,   32,   55,  120,   58,  107,  116,   46,
- /*   120 */    14,   29,   22,   60,  126,   23,   37,   64,  114,  109,
- /*   130 */    51,    1,   13,  108,   17,   67,   50,   38,  119,   43,
- /*   140 */    41,   36,  125,  111,  197,    2,  197,   56,   49,
+ /*     0 */   181,   51,  195,   81,  139,  161,   79,   77,   75,  138,
+ /*    10 */    71,   30,   60,   53,  196,    5,   25,  213,   50,   10,
+ /*    20 */   259,    8,  178,  179,  180,  182,  183,  184,  185,  186,
+ /*    30 */   187,  188,   41,   53,  229,    5,   27,  213,  222,  220,
+ /*    40 */   155,  223,  144,   53,  143,    5,   54,  212,  239,   50,
+ /*    50 */    46,   16,   37,  214,  214,   38,    8,    5,   57,  203,
+ /*    60 */   208,   43,   58,    5,    5,  174,  192,  164,   24,    4,
+ /*    70 */    64,   66,    7,   66,   56,  147,  175,   26,    4,   63,
+ /*    80 */     9,   69,   62,  252,  168,   40,   52,  215,  194,   28,
+ /*    90 */    11,    3,   18,    6,   14,   15,  165,   31,   33,   32,
+ /*   100 */    34,  163,   35,   36,   39,  162,    1,  170,   42,   19,
+ /*   110 */    44,   45,   47,   49,   20,  148,   48,  154,   17,  146,
+ /*   120 */   197,  197,   61,  173,   59,  197,  191,   21,    2,  197,
+ /*   130 */   197,   65,   67,  197,   22,  142,   68,   12,  193,   70,
+ /*   140 */    74,   55,   13,   72,   29,   23,   73,  137,   76,  197,
+ /*   150 */   136,   78,  197,  197,  135,  197,  197,   80,
 };
 static const YYCODETYPE yy_lookahead[] = {
- /*     0 */     7,    0,    1,    2,    2,    4,    5,    6,   47,   48,
- /*    10 */    60,   50,   10,   11,   12,   13,   51,   10,   53,   54,
- /*    20 */    55,   19,   29,   30,   31,   32,   33,   34,   35,   36,
- /*    30 */    37,   38,    2,   51,   10,   53,   54,   55,   18,   51,
- /*    40 */    10,   53,    3,   55,   15,   16,   39,   52,   50,   19,
- /*    50 */    20,   21,   22,   43,   44,   16,   26,   62,   46,   47,
- /*    60 */    40,   15,   16,   39,   51,   10,   53,    7,    8,    7,
- /*    70 */    51,   60,   53,   51,    3,   53,   15,   16,    3,    8,
- /*    80 */    18,   26,   18,    8,   58,   17,   63,   56,   25,   61,
- /*    90 */     7,   49,    8,   59,    3,   57,    9,   45,    2,    7,
- /*   100 */    59,   42,    8,    3,    3,   24,   18,    9,    9,    7,
- /*   110 */     7,    3,    3,    7,    7,    3,    2,   28,    3,    8,
- /*   120 */    27,   17,    9,   28,    3,    9,    3,    7,   18,    3,
- /*   130 */     8,   14,   27,    3,    7,    3,    2,    8,    3,    2,
- /*   140 */     7,    3,    3,    3,   64,   14,   64,   23,    7,
+ /*     0 */     7,    2,    0,    1,    2,   10,    4,    5,    6,   10,
+ /*    10 */    11,   12,   13,   51,   42,   53,   54,   55,   19,   43,
+ /*    20 */    44,   26,   29,   30,   31,   32,   33,   34,   35,   36,
+ /*    30 */    37,   38,    2,   51,   50,   53,   54,   55,   47,   48,
+ /*    40 */    10,   50,   10,   51,   10,   53,   60,   55,   52,   19,
+ /*    50 */    20,   21,   22,   15,   16,   51,   26,   53,   62,   46,
+ /*    60 */    47,   51,   51,   53,   53,    7,    3,    3,   15,   16,
+ /*    70 */    18,   39,    8,   39,   60,    3,   18,   15,   16,   16,
+ /*    80 */     8,    7,    8,   58,   25,   61,   17,   56,   18,   63,
+ /*    90 */    57,   49,   40,   45,   59,   59,    3,    7,    7,   24,
+ /*   100 */    23,    3,    8,    7,    7,    3,   14,    3,    7,    9,
+ /*   110 */     3,    8,    3,    7,    9,    3,    8,   18,    7,    3,
+ /*   120 */    64,   64,    3,   28,    7,   64,    3,    9,   14,   64,
+ /*   130 */    64,    7,    3,   64,    9,    3,    8,   27,   18,    2,
+ /*   140 */     7,   28,   27,    3,   17,    9,    8,    3,    2,   64,
+ /*   150 */     3,    2,   64,   64,    3,   64,   64,    2,
 };
-#define YY_SHIFT_USE_DFLT (-8)
-#define YY_SHIFT_MAX 81
+#define YY_SHIFT_USE_DFLT (158)
+#define YY_SHIFT_COUNT    (81)
+#define YY_SHIFT_MIN      (-7)
+#define YY_SHIFT_MAX      (155)
 static const short yy_shift_ofst[] = {
- /*     0 */    -8,   29,   29,   30,   -8,   -7,    2,   -8,   -8,   -8,
- /*    10 */     1,   24,   55,   62,   62,    7,   64,   68,   63,   -8,
- /*    20 */    -8,   -8,   -8,   -8,   71,   61,   39,   60,   46,   20,
- /*    30 */    75,  106,  104,  112,  115,  111,  113,  116,  123,  110,
- /*    40 */   117,  122,  132,  135,  137,  133,  124,  140,  141,  131,
- /*    50 */   139,  138,  129,  134,  130,  126,  120,  105,  121,   95,
- /*    60 */    93,  114,   89,  107,   81,  108,  109,   99,   98,  101,
- /*    70 */    94,   96,   92,   87,   91,   84,   83,  100,   88,  102,
- /*    80 */   103,  127,
+ /*     0 */   158,   38,   38,   30,  158,   -7,   -1,  158,  158,  158,
+ /*    10 */     2,   -5,   58,   58,   32,   34,   59,   69,   70,  158,
+ /*    20 */   158,  158,  158,  158,   64,   53,   72,   62,   63,   52,
+ /*    30 */    74,   93,   90,   75,   91,   77,   94,   96,   98,   92,
+ /*    40 */    97,  102,  104,  101,  100,  107,  103,  105,  109,  108,
+ /*    50 */   106,  112,   99,  111,   95,  110,  113,  115,  116,  114,
+ /*    60 */   117,  118,  119,  120,  123,  127,  124,  125,  129,  128,
+ /*    70 */   132,  137,  136,  140,  138,  133,  144,  146,  147,  149,
+ /*    80 */   151,  155,
 };
-#define YY_REDUCE_USE_DFLT (-51)
-#define YY_REDUCE_MAX 23
+#define YY_REDUCE_USE_DFLT (-39)
+#define YY_REDUCE_COUNT (23)
+#define YY_REDUCE_MIN   (-38)
+#define YY_REDUCE_MAX   (48)
 static const signed char yy_reduce_ofst[] = {
- /*     0 */    10,  -18,  -35,  -39,  -12,   -5,   12,   13,   19,   22,
- /*    10 */    59,   26,   -2,  -50,   11,   26,   23,   31,   28,   42,
- /*    20 */    34,   38,   52,   41,
+ /*     0 */   -24,  -38,  -18,   -9,   -8,   -4,   13,    4,   10,   11,
+ /*    10 */   -28,  -16,  -14,   14,   25,   25,   24,   31,   26,   33,
+ /*    20 */    42,   35,   36,   48,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */   134,  177,  177,  195,  177,  195,  195,  177,  177,  177,
- /*    10 */   195,  195,  195,  195,  195,  195,  195,  153,  169,  158,
- /*    20 */   190,  167,  141,  190,  195,  195,  195,  195,  195,  195,
- /*    30 */   195,  195,  195,  195,  195,  195,  195,  195,  195,  195,
- /*    40 */   195,  195,  195,  195,  195,  195,  195,  195,  195,  195,
- /*    50 */   195,  195,  195,  195,  195,  195,  195,  171,  195,  195,
- /*    60 */   172,  195,  195,  195,  195,  195,  195,  195,  195,  195,
- /*    70 */   195,  195,  195,  156,  195,  195,  195,  195,  195,  195,
- /*    80 */   195,  195,  149,  152,  147,  154,  150,  188,  148,  187,
- /*    90 */   186,  185,  184,  183,  182,  155,  157,  159,  160,  181,
- /*   100 */   180,  179,  178,  176,  161,  166,  174,  173,  146,  170,
- /*   110 */   145,  162,  144,  194,  193,  192,  191,  189,  143,  142,
- /*   120 */   163,  164,  168,  140,  138,  137,  136,  135,  133,  175,
- /*   130 */   165,  139,
+ /*     0 */   197,  240,  240,  258,  240,  258,  258,  240,  240,  240,
+ /*    10 */   258,  258,  258,  258,  258,  258,  232,  216,  258,  230,
+ /*    20 */   221,  253,  253,  204,  258,  258,  258,  258,  258,  258,
+ /*    30 */   258,  258,  258,  258,  258,  258,  258,  258,  258,  258,
+ /*    40 */   258,  258,  258,  258,  258,  258,  258,  219,  258,  258,
+ /*    50 */   258,  258,  258,  258,  258,  235,  258,  234,  258,  258,
+ /*    60 */   258,  258,  258,  258,  258,  258,  258,  258,  258,  258,
+ /*    70 */   258,  258,  258,  258,  258,  258,  258,  258,  258,  258,
+ /*    80 */   258,  258,
 };
-#define YY_SZ_ACTTAB (int)(sizeof(yy_action)/sizeof(yy_action[0]))
+/********** End of lemon-generated parsing tables *****************************/
 
-/* The next table maps tokens into fallback tokens.  If a construct
-** like the following:
+/* The next table maps tokens (terminal symbols) into fallback tokens.  
+** If a construct like the following:
 ** 
 **      %fallback ID X Y Z.
 **
@@ -232,6 +274,10 @@ static const YYACTIONTYPE yy_default[] = {
 ** and Z.  Whenever one of the tokens X, Y, or Z is input to the parser
 ** but it does not parse, the type of the token is changed to ID and
 ** the parse is retried before an error is thrown.
+**
+** This feature can be used, for example, to cause some keywords in a language
+** to revert to identifiers if they keyword does not apply in the context where
+** it appears.
 */
 #ifdef YYFALLBACK
 static const YYCODETYPE yyFallback[] = {
@@ -249,9 +295,13 @@ static const YYCODETYPE yyFallback[] = {
 **   +  The semantic value stored at this level of the stack.  This is
 **      the information used by the action routines in the grammar.
 **      It is sometimes called the "minor" token.
+**
+** After the "shift" half of a SHIFTREDUCE action, the stateno field
+** actually contains the reduce action for the second half of the
+** SHIFTREDUCE.
 */
 struct yyStackEntry {
-  YYACTIONTYPE stateno;  /* The state-number */
+  YYACTIONTYPE stateno;  /* The state-number, or reduce action in SHIFTREDUCE */
   YYCODETYPE major;      /* The major token value.  This is the code
                          ** number for the token at this stack level */
   YYMINORTYPE minor;     /* The user-supplied minor token value.  This
@@ -262,17 +312,21 @@ typedef struct yyStackEntry yyStackEntry;
 /* The state of the parser is completely contained in an instance of
 ** the following structure */
 struct yyParser {
-  int yyidx;                    /* Index of top element in stack */
+  yyStackEntry *yytos;          /* Pointer to top element of the stack */
 #ifdef YYTRACKMAXSTACKDEPTH
-  int yyidxMax;                 /* Maximum value of yyidx */
+  int yyhwm;                    /* High-water mark of the stack */
 #endif
+#ifndef YYNOERRORRECOVERY
   int yyerrcnt;                 /* Shifts left before out of the error */
+#endif
   ParseARG_SDECL                /* A place to hold %extra_argument */
 #if YYSTACKDEPTH<=0
   int yystksz;                  /* Current side of the stack */
   yyStackEntry *yystack;        /* The parser's stack */
+  yyStackEntry yystk0;          /* First stack entry */
 #else
   yyStackEntry yystack[YYSTACKDEPTH];  /* The parser's stack */
+  yyStackEntry *yystackEnd;            /* Last entry in the stack */
 #endif
 };
 typedef struct yyParser yyParser;
@@ -405,27 +459,74 @@ static const char *const yyRuleName[] = {
 
 #if YYSTACKDEPTH<=0
 /*
-** Try to increase the size of the parser stack.
+** Try to increase the size of the parser stack.  Return the number
+** of errors.  Return 0 on success.
 */
-static void yyGrowStack(yyParser *p){
+static int yyGrowStack(yyParser *p){
   int newSize;
+  int idx;
   yyStackEntry *pNew;
 
   newSize = p->yystksz*2 + 100;
-  pNew = realloc(p->yystack, newSize*sizeof(pNew[0]));
+  idx = p->yytos ? (int)(p->yytos - p->yystack) : 0;
+  if( p->yystack==&p->yystk0 ){
+    pNew = malloc(newSize*sizeof(pNew[0]));
+    if( pNew ) pNew[0] = p->yystk0;
+  }else{
+    pNew = realloc(p->yystack, newSize*sizeof(pNew[0]));
+  }
   if( pNew ){
     p->yystack = pNew;
-    p->yystksz = newSize;
+    p->yytos = &p->yystack[idx];
 #ifndef NDEBUG
     if( yyTraceFILE ){
-      fprintf(yyTraceFILE,"%sStack grows to %d entries!\n",
-              yyTracePrompt, p->yystksz);
+      fprintf(yyTraceFILE,"%sStack grows from %d to %d entries.\n",
+              yyTracePrompt, p->yystksz, newSize);
     }
 #endif
+    p->yystksz = newSize;
   }
+  return pNew==0; 
 }
 #endif
 
+/* Datatype of the argument to the memory allocated passed as the
+** second argument to ParseAlloc() below.  This can be changed by
+** putting an appropriate #define in the %include section of the input
+** grammar.
+*/
+#ifndef YYMALLOCARGTYPE
+# define YYMALLOCARGTYPE size_t
+#endif
+
+/* Initialize a new parser that has already been allocated.
+*/
+void ParseInit(void *yypParser){
+  yyParser *pParser = (yyParser*)yypParser;
+#ifdef YYTRACKMAXSTACKDEPTH
+  pParser->yyhwm = 0;
+#endif
+#if YYSTACKDEPTH<=0
+  pParser->yytos = NULL;
+  pParser->yystack = NULL;
+  pParser->yystksz = 0;
+  if( yyGrowStack(pParser) ){
+    pParser->yystack = &pParser->yystk0;
+    pParser->yystksz = 1;
+  }
+#endif
+#ifndef YYNOERRORRECOVERY
+  pParser->yyerrcnt = -1;
+#endif
+  pParser->yytos = pParser->yystack;
+  pParser->yystack[0].stateno = 0;
+  pParser->yystack[0].major = 0;
+#if YYSTACKDEPTH>0
+  pParser->yystackEnd = &pParser->yystack[YYSTACKDEPTH-1];
+#endif
+}
+
+#ifndef Parse_ENGINEALWAYSONSTACK
 /* 
 ** This function allocates a new parser.
 ** The only argument is a pointer to a function which works like
@@ -438,27 +539,21 @@ static void yyGrowStack(yyParser *p){
 ** A pointer to a parser.  This pointer is used in subsequent calls
 ** to Parse and ParseFree.
 */
-void *ParseAlloc(void *(*mallocProc)(size_t)){
+void *ParseAlloc(void *(*mallocProc)(YYMALLOCARGTYPE)){
   yyParser *pParser;
-  pParser = (yyParser*)(*mallocProc)( (size_t)sizeof(yyParser) );
-  if( pParser ){
-    pParser->yyidx = -1;
-#ifdef YYTRACKMAXSTACKDEPTH
-    pParser->yyidxMax = 0;
-#endif
-#if YYSTACKDEPTH<=0
-    pParser->yystack = NULL;
-    pParser->yystksz = 0;
-    yyGrowStack(pParser);
-#endif
-  }
+  pParser = (yyParser*)(*mallocProc)( (YYMALLOCARGTYPE)sizeof(yyParser) );
+  if( pParser ) ParseInit(pParser);
   return pParser;
 }
+#endif /* Parse_ENGINEALWAYSONSTACK */
 
-/* The following function deletes the value associated with a
-** symbol.  The symbol can be either a terminal or nonterminal.
-** "yymajor" is the symbol code, and "yypminor" is a pointer to
-** the value.
+
+/* The following function deletes the "minor type" or semantic value
+** associated with a symbol.  The symbol can be either a terminal
+** or nonterminal. "yymajor" is the symbol code, and "yypminor" is
+** a pointer to the value to be deleted.  The code used to do the 
+** deletions is derived from the %destructor and/or %token_destructor
+** directives of the input grammar.
 */
 static void yy_destructor(
   yyParser *yypParser,    /* The parser */
@@ -474,9 +569,11 @@ static void yy_destructor(
     ** being destroyed before it is finished parsing.
     **
     ** Note: during a reduce, the only symbols destroyed are those
-    ** which appear on the RHS of the rule, but which are not used
+    ** which appear on the RHS of the rule, but which are *not* used
     ** inside the C code.
     */
+/********* Begin destructor definitions ***************************************/
+/********* End destructor definitions *****************************************/
     default:  break;   /* If no destructor action specified: do nothing */
   }
 }
@@ -486,51 +583,53 @@ static void yy_destructor(
 **
 ** If there is a destructor routine associated with the token which
 ** is popped from the stack, then call it.
-**
-** Return the major token number for the symbol popped.
 */
-static int yy_pop_parser_stack(yyParser *pParser){
-  YYCODETYPE yymajor;
-  yyStackEntry *yytos = &pParser->yystack[pParser->yyidx];
-
-  if( pParser->yyidx<0 ) return 0;
+static void yy_pop_parser_stack(yyParser *pParser){
+  yyStackEntry *yytos;
+  assert( pParser->yytos!=0 );
+  assert( pParser->yytos > pParser->yystack );
+  yytos = pParser->yytos--;
 #ifndef NDEBUG
-  if( yyTraceFILE && pParser->yyidx>=0 ){
+  if( yyTraceFILE ){
     fprintf(yyTraceFILE,"%sPopping %s\n",
       yyTracePrompt,
       yyTokenName[yytos->major]);
   }
 #endif
-  yymajor = yytos->major;
-  yy_destructor(pParser, yymajor, &yytos->minor);
-  pParser->yyidx--;
-  return yymajor;
+  yy_destructor(pParser, yytos->major, &yytos->minor);
 }
 
+/*
+** Clear all secondary memory allocations from the parser
+*/
+void ParseFinalize(void *p){
+  yyParser *pParser = (yyParser*)p;
+  while( pParser->yytos>pParser->yystack ) yy_pop_parser_stack(pParser);
+#if YYSTACKDEPTH<=0
+  if( pParser->yystack!=&pParser->yystk0 ) free(pParser->yystack);
+#endif
+}
+
+#ifndef Parse_ENGINEALWAYSONSTACK
 /* 
-** Deallocate and destroy a parser.  Destructors are all called for
+** Deallocate and destroy a parser.  Destructors are called for
 ** all stack elements before shutting the parser down.
 **
-** Inputs:
-** <ul>
-** <li>  A pointer to the parser.  This should be a pointer
-**       obtained from ParseAlloc.
-** <li>  A pointer to a function used to reclaim memory obtained
-**       from malloc.
-** </ul>
+** If the YYPARSEFREENEVERNULL macro exists (for example because it
+** is defined in a %include section of the input grammar) then it is
+** assumed that the input pointer is never NULL.
 */
 void ParseFree(
   void *p,                    /* The parser to be deleted */
   void (*freeProc)(void*)     /* Function used to reclaim memory */
 ){
-  yyParser *pParser = (yyParser*)p;
-  if( pParser==0 ) return;
-  while( pParser->yyidx>=0 ) yy_pop_parser_stack(pParser);
-#if YYSTACKDEPTH<=0
-  free(pParser->yystack);
+#ifndef YYPARSEFREENEVERNULL
+  if( p==0 ) return;
 #endif
-  (*freeProc)((void*)pParser);
+  ParseFinalize(p);
+  (*freeProc)(p);
 }
+#endif /* Parse_ENGINEALWAYSONSTACK */
 
 /*
 ** Return the peak depth of the stack for a parser.
@@ -538,32 +637,28 @@ void ParseFree(
 #ifdef YYTRACKMAXSTACKDEPTH
 int ParseStackPeak(void *p){
   yyParser *pParser = (yyParser*)p;
-  return pParser->yyidxMax;
+  return pParser->yyhwm;
 }
 #endif
 
 /*
 ** Find the appropriate action for a parser given the terminal
 ** look-ahead token iLookAhead.
-**
-** If the look-ahead token is YYNOCODE, then check to see if the action is
-** independent of the look-ahead.  If it is, return the action, otherwise
-** return YY_NO_ACTION.
 */
-static int yy_find_shift_action(
+static unsigned int yy_find_shift_action(
   yyParser *pParser,        /* The parser */
   YYCODETYPE iLookAhead     /* The look-ahead token */
 ){
   int i;
-  int stateno = pParser->yystack[pParser->yyidx].stateno;
+  int stateno = pParser->yytos->stateno;
  
-  if( stateno>YY_SHIFT_MAX || (i = yy_shift_ofst[stateno])==YY_SHIFT_USE_DFLT ){
-    return yy_default[stateno];
-  }
-  assert( iLookAhead!=YYNOCODE );
-  i += iLookAhead;
-  if( i<0 || i>=YY_SZ_ACTTAB || yy_lookahead[i]!=iLookAhead ){
-    if( iLookAhead>0 ){
+  if( stateno>=YY_MIN_REDUCE ) return stateno;
+  assert( stateno <= YY_SHIFT_COUNT );
+  do{
+    i = yy_shift_ofst[stateno];
+    assert( iLookAhead!=YYNOCODE );
+    i += iLookAhead;
+    if( i<0 || i>=YY_ACTTAB_COUNT || yy_lookahead[i]!=iLookAhead ){
 #ifdef YYFALLBACK
       YYCODETYPE iFallback;            /* Fallback token */
       if( iLookAhead<sizeof(yyFallback)/sizeof(yyFallback[0])
@@ -574,37 +669,44 @@ static int yy_find_shift_action(
              yyTracePrompt, yyTokenName[iLookAhead], yyTokenName[iFallback]);
         }
 #endif
-        return yy_find_shift_action(pParser, iFallback);
+        assert( yyFallback[iFallback]==0 ); /* Fallback loop must terminate */
+        iLookAhead = iFallback;
+        continue;
       }
 #endif
 #ifdef YYWILDCARD
       {
         int j = i - iLookAhead + YYWILDCARD;
-        if( j>=0 && j<YY_SZ_ACTTAB && yy_lookahead[j]==YYWILDCARD ){
+        if( 
+#if YY_SHIFT_MIN+YYWILDCARD<0
+          j>=0 &&
+#endif
+#if YY_SHIFT_MAX+YYWILDCARD>=YY_ACTTAB_COUNT
+          j<YY_ACTTAB_COUNT &&
+#endif
+          yy_lookahead[j]==YYWILDCARD && iLookAhead>0
+        ){
 #ifndef NDEBUG
           if( yyTraceFILE ){
             fprintf(yyTraceFILE, "%sWILDCARD %s => %s\n",
-               yyTracePrompt, yyTokenName[iLookAhead], yyTokenName[YYWILDCARD]);
+               yyTracePrompt, yyTokenName[iLookAhead],
+               yyTokenName[YYWILDCARD]);
           }
 #endif /* NDEBUG */
           return yy_action[j];
         }
       }
 #endif /* YYWILDCARD */
+      return yy_default[stateno];
+    }else{
+      return yy_action[i];
     }
-    return yy_default[stateno];
-  }else{
-    return yy_action[i];
-  }
+  }while(1);
 }
 
 /*
 ** Find the appropriate action for a parser given the non-terminal
 ** look-ahead token iLookAhead.
-**
-** If the look-ahead token is YYNOCODE, then check to see if the action is
-** independent of the look-ahead.  If it is, return the action, otherwise
-** return YY_NO_ACTION.
 */
 static int yy_find_reduce_action(
   int stateno,              /* Current state number */
@@ -612,22 +714,22 @@ static int yy_find_reduce_action(
 ){
   int i;
 #ifdef YYERRORSYMBOL
-  if( stateno>YY_REDUCE_MAX ){
+  if( stateno>YY_REDUCE_COUNT ){
     return yy_default[stateno];
   }
 #else
-  assert( stateno<=YY_REDUCE_MAX );
+  assert( stateno<=YY_REDUCE_COUNT );
 #endif
   i = yy_reduce_ofst[stateno];
   assert( i!=YY_REDUCE_USE_DFLT );
   assert( iLookAhead!=YYNOCODE );
   i += iLookAhead;
 #ifdef YYERRORSYMBOL
-  if( i<0 || i>=YY_SZ_ACTTAB || yy_lookahead[i]!=iLookAhead ){
+  if( i<0 || i>=YY_ACTTAB_COUNT || yy_lookahead[i]!=iLookAhead ){
     return yy_default[stateno];
   }
 #else
-  assert( i>=0 && i<YY_SZ_ACTTAB );
+  assert( i>=0 && i<YY_ACTTAB_COUNT );
   assert( yy_lookahead[i]==iLookAhead );
 #endif
   return yy_action[i];
@@ -636,19 +738,40 @@ static int yy_find_reduce_action(
 /*
 ** The following routine is called if the stack overflows.
 */
-static void yyStackOverflow(yyParser *yypParser, YYMINORTYPE *yypMinor){
+static void yyStackOverflow(yyParser *yypParser){
    ParseARG_FETCH;
-   yypParser->yyidx--;
 #ifndef NDEBUG
    if( yyTraceFILE ){
      fprintf(yyTraceFILE,"%sStack Overflow!\n",yyTracePrompt);
    }
 #endif
-   while( yypParser->yyidx>=0 ) yy_pop_parser_stack(yypParser);
+   while( yypParser->yytos>yypParser->yystack ) yy_pop_parser_stack(yypParser);
    /* Here code is inserted which will execute if the parser
    ** stack every overflows */
+/******** Begin %stack_overflow code ******************************************/
+/******** End %stack_overflow code ********************************************/
    ParseARG_STORE; /* Suppress warning about unused %extra_argument var */
 }
+
+/*
+** Print tracing information for a SHIFT action
+*/
+#ifndef NDEBUG
+static void yyTraceShift(yyParser *yypParser, int yyNewState){
+  if( yyTraceFILE ){
+    if( yyNewState<YYNSTATE ){
+      fprintf(yyTraceFILE,"%sShift '%s', go to state %d\n",
+         yyTracePrompt,yyTokenName[yypParser->yytos->major],
+         yyNewState);
+    }else{
+      fprintf(yyTraceFILE,"%sShift '%s'\n",
+         yyTracePrompt,yyTokenName[yypParser->yytos->major]);
+    }
+  }
+}
+#else
+# define yyTraceShift(X,Y)
+#endif
 
 /*
 ** Perform a shift action.
@@ -657,115 +780,111 @@ static void yy_shift(
   yyParser *yypParser,          /* The parser to be shifted */
   int yyNewState,               /* The new state to shift in */
   int yyMajor,                  /* The major token to shift in */
-  YYMINORTYPE *yypMinor         /* Pointer to the minor token to shift in */
+  ParseTOKENTYPE yyMinor        /* The minor token to shift in */
 ){
   yyStackEntry *yytos;
-  yypParser->yyidx++;
+  yypParser->yytos++;
 #ifdef YYTRACKMAXSTACKDEPTH
-  if( yypParser->yyidx>yypParser->yyidxMax ){
-    yypParser->yyidxMax = yypParser->yyidx;
+  if( (int)(yypParser->yytos - yypParser->yystack)>yypParser->yyhwm ){
+    yypParser->yyhwm++;
+    assert( yypParser->yyhwm == (int)(yypParser->yytos - yypParser->yystack) );
   }
 #endif
 #if YYSTACKDEPTH>0 
-  if( yypParser->yyidx>=YYSTACKDEPTH ){
-    yyStackOverflow(yypParser, yypMinor);
+  if( yypParser->yytos>yypParser->yystackEnd ){
+    yypParser->yytos--;
+    yyStackOverflow(yypParser);
     return;
   }
 #else
-  if( yypParser->yyidx>=yypParser->yystksz ){
-    yyGrowStack(yypParser);
-    if( yypParser->yyidx>=yypParser->yystksz ){
-      yyStackOverflow(yypParser, yypMinor);
+  if( yypParser->yytos>=&yypParser->yystack[yypParser->yystksz] ){
+    if( yyGrowStack(yypParser) ){
+      yypParser->yytos--;
+      yyStackOverflow(yypParser);
       return;
     }
   }
 #endif
-  yytos = &yypParser->yystack[yypParser->yyidx];
+  if( yyNewState > YY_MAX_SHIFT ){
+    yyNewState += YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE;
+  }
+  yytos = yypParser->yytos;
   yytos->stateno = (YYACTIONTYPE)yyNewState;
   yytos->major = (YYCODETYPE)yyMajor;
-  yytos->minor = *yypMinor;
-#ifndef NDEBUG
-  if( yyTraceFILE && yypParser->yyidx>0 ){
-    int i;
-    fprintf(yyTraceFILE,"%sShift %d\n",yyTracePrompt,yyNewState);
-    fprintf(yyTraceFILE,"%sStack:",yyTracePrompt);
-    for(i=1; i<=yypParser->yyidx; i++)
-      fprintf(yyTraceFILE," %s",yyTokenName[yypParser->yystack[i].major]);
-    fprintf(yyTraceFILE,"\n");
-  }
-#endif
+  yytos->minor.yy0 = yyMinor;
+  yyTraceShift(yypParser, yyNewState);
 }
 
 /* The following table contains information about every rule that
 ** is used during the reduce.
 */
 static const struct {
-  YYCODETYPE lhs;         /* Symbol on the left-hand side of the rule */
-  unsigned char nrhs;     /* Number of right-hand side symbols in the rule */
+  YYCODETYPE lhs;       /* Symbol on the left-hand side of the rule */
+  signed char nrhs;     /* Negative of the number of RHS symbols in the rule */
 } yyRuleInfo[] = {
-  { 44, 1 },
-  { 43, 2 },
+  { 44, -1 },
+  { 43, -2 },
   { 43, 0 },
-  { 42, 3 },
-  { 42, 3 },
-  { 42, 3 },
-  { 42, 7 },
-  { 42, 1 },
-  { 45, 2 },
+  { 42, -3 },
+  { 42, -3 },
+  { 42, -3 },
+  { 42, -7 },
+  { 42, -1 },
+  { 45, -2 },
   { 45, 0 },
-  { 46, 3 },
-  { 46, 7 },
-  { 46, 6 },
-  { 46, 1 },
-  { 46, 8 },
-  { 46, 6 },
-  { 46, 2 },
-  { 54, 3 },
-  { 54, 1 },
+  { 46, -3 },
+  { 46, -7 },
+  { 46, -6 },
+  { 46, -1 },
+  { 46, -8 },
+  { 46, -6 },
+  { 46, -2 },
+  { 54, -3 },
+  { 54, -1 },
   { 54, 0 },
-  { 55, 3 },
+  { 55, -3 },
   { 56, 0 },
-  { 56, 2 },
-  { 47, 7 },
-  { 47, 4 },
-  { 49, 2 },
+  { 56, -2 },
+  { 47, -7 },
+  { 47, -4 },
+  { 49, -2 },
   { 49, 0 },
-  { 48, 1 },
-  { 48, 1 },
-  { 48, 6 },
-  { 48, 2 },
-  { 48, 9 },
-  { 48, 7 },
-  { 48, 8 },
-  { 57, 2 },
+  { 48, -1 },
+  { 48, -1 },
+  { 48, -6 },
+  { 48, -2 },
+  { 48, -9 },
+  { 48, -7 },
+  { 48, -8 },
+  { 57, -2 },
   { 57, 0 },
-  { 61, 1 },
+  { 61, -1 },
   { 61, 0 },
-  { 50, 4 },
-  { 51, 2 },
-  { 51, 5 },
-  { 51, 8 },
-  { 60, 1 },
-  { 60, 1 },
-  { 53, 2 },
+  { 50, -4 },
+  { 51, -2 },
+  { 51, -5 },
+  { 51, -8 },
+  { 60, -1 },
+  { 60, -1 },
+  { 53, -2 },
   { 53, 0 },
-  { 52, 1 },
-  { 52, 1 },
-  { 52, 1 },
-  { 62, 1 },
-  { 62, 1 },
-  { 62, 1 },
-  { 62, 1 },
-  { 62, 1 },
-  { 62, 1 },
-  { 62, 1 },
-  { 62, 1 },
-  { 59, 2 },
+  { 52, -1 },
+  { 52, -1 },
+  { 52, -1 },
+  { 62, -1 },
+  { 62, -1 },
+  { 62, -1 },
+  { 62, -1 },
+  { 62, -1 },
+  { 62, -1 },
+  { 62, -1 },
+  { 62, -1 },
+  { 59, -2 },
   { 59, 0 },
-  { 58, 5 },
-  { 58, 6 },
-  { 63, 3 },
-  { 63, 1 },
+  { 58, -5 },
+  { 58, -6 },
+  { 63, -3 },
+  { 63, -1 },
 };
 
 static void yy_accept(yyParser*);  /* Forward Declaration */
@@ -776,40 +895,47 @@ static void yy_accept(yyParser*);  /* Forward Declaration */
 */
 static void yy_reduce(
   yyParser *yypParser,         /* The parser */
-  int yyruleno                 /* Number of the rule by which to reduce */
+  unsigned int yyruleno        /* Number of the rule by which to reduce */
 ){
   int yygoto;                     /* The next state */
   int yyact;                      /* The next action */
-  YYMINORTYPE yygotominor;        /* The LHS of the rule reduced */
   yyStackEntry *yymsp;            /* The top of the parser's stack */
   int yysize;                     /* Amount to pop the stack */
   ParseARG_FETCH;
-  yymsp = &yypParser->yystack[yypParser->yyidx];
+  yymsp = yypParser->yytos;
 #ifndef NDEBUG
-  if( yyTraceFILE && yyruleno>=0 
-        && yyruleno<(int)(sizeof(yyRuleName)/sizeof(yyRuleName[0])) ){
-    fprintf(yyTraceFILE, "%sReduce [%s].\n", yyTracePrompt,
-      yyRuleName[yyruleno]);
+  if( yyTraceFILE && yyruleno<(int)(sizeof(yyRuleName)/sizeof(yyRuleName[0])) ){
+    yysize = yyRuleInfo[yyruleno].nrhs;
+    fprintf(yyTraceFILE, "%sReduce [%s], go to state %d.\n", yyTracePrompt,
+      yyRuleName[yyruleno], yymsp[yysize].stateno);
   }
 #endif /* NDEBUG */
 
-  /* Silence complaints from purify about yygotominor being uninitialized
-  ** in some cases when it is copied into the stack after the following
-  ** switch.  yygotominor is uninitialized when a rule reduces that does
-  ** not set the value of its left-hand side nonterminal.  Leaving the
-  ** value of the nonterminal uninitialized is utterly harmless as long
-  ** as the value is never used.  So really the only thing this code
-  ** accomplishes is to quieten purify.  
-  **
-  ** 2007-01-16:  The wireshark project (www.wireshark.org) reports that
-  ** without this code, their parser segfaults.  I'm not sure what there
-  ** parser is doing to make this happen.  This is the second bug report
-  ** from wireshark this week.  Clearly they are stressing Lemon in ways
-  ** that it has not been previously stressed...  (SQLite ticket #2172)
-  */
-  /*memset(&yygotominor, 0, sizeof(yygotominor));*/
-  yygotominor = yyzerominor;
-
+  /* Check that the stack is large enough to grow by a single entry
+  ** if the RHS of the rule is empty.  This ensures that there is room
+  ** enough on the stack to push the LHS value */
+  if( yyRuleInfo[yyruleno].nrhs==0 ){
+#ifdef YYTRACKMAXSTACKDEPTH
+    if( (int)(yypParser->yytos - yypParser->yystack)>yypParser->yyhwm ){
+      yypParser->yyhwm++;
+      assert( yypParser->yyhwm == (int)(yypParser->yytos - yypParser->yystack));
+    }
+#endif
+#if YYSTACKDEPTH>0 
+    if( yypParser->yytos>=yypParser->yystackEnd ){
+      yyStackOverflow(yypParser);
+      return;
+    }
+#else
+    if( yypParser->yytos>=&yypParser->yystack[yypParser->yystksz-1] ){
+      if( yyGrowStack(yypParser) ){
+        yyStackOverflow(yypParser);
+        return;
+      }
+      yymsp = yypParser->yytos;
+    }
+#endif
+  }
 
   switch( yyruleno ){
   /* Beginning here are the reduction cases.  A typical example
@@ -820,464 +946,481 @@ static void yy_reduce(
   **  #line <lineno> <thisfile>
   **     break;
   */
+/********** Begin reduce actions **********************************************/
+        YYMINORTYPE yylhsminor;
       case 0: /* program ::= programlist */
 #line 56 "zidl.y"
 {
 	context->result = yymsp[0].minor.yy9;
 }
-#line 829 "zidl.c"
+#line 957 "zidl.c"
         break;
       case 1: /* programlist ::= programlist programbody */
       case 8: /* namespacelist ::= namespacelist namespacebody */ yytestcase(yyruleno==8);
 #line 60 "zidl.y"
 {
-	yygotominor.yy9 = yymsp[-1].minor.yy9;
+	yylhsminor.yy9 = yymsp[-1].minor.yy9;
 	yymsp[-1].minor.yy9->add_child(yymsp[0].minor.yy9);
 }
-#line 838 "zidl.c"
+#line 966 "zidl.c"
+  yymsp[-1].minor.yy9 = yylhsminor.yy9;
         break;
       case 2: /* programlist ::= */
 #line 65 "zidl.y"
 { 
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _ProgramList;
+	yymsp[1].minor.yy9 = new node();
+	yymsp[1].minor.yy9->type = _ProgramList;
 }
-#line 846 "zidl.c"
+#line 975 "zidl.c"
         break;
       case 3: /* programbody ::= INCLUDE DQSTR LINEBREAK */
 #line 70 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Include;
-	yygotominor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
+	yymsp[-2].minor.yy9 = new node();
+	yymsp[-2].minor.yy9->type = _Include;
+	yymsp[-2].minor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
 }
-#line 855 "zidl.c"
+#line 984 "zidl.c"
         break;
       case 4: /* programbody ::= CHEADER DQSTR LINEBREAK */
 #line 76 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Cheader;
-	yygotominor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
+	yymsp[-2].minor.yy9 = new node();
+	yymsp[-2].minor.yy9->type = _Cheader;
+	yymsp[-2].minor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
 }
-#line 864 "zidl.c"
+#line 993 "zidl.c"
         break;
       case 5: /* programbody ::= IMPORT DQSTR LINEBREAK */
 #line 82 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Import;
-	yygotominor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
+	yymsp[-2].minor.yy9 = new node();
+	yymsp[-2].minor.yy9->type = _Import;
+	yymsp[-2].minor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
 	// derive import filename from context->scriptpath 
-	node* zidlimport = zidl_parse_file(context->scriptpath + yygotominor.yy9->name);
+	node* zidlimport = zidl_parse_file(context->scriptpath + yymsp[-2].minor.yy9->name);
 	if (zidlimport == 0) {
 		// programmatic syntax error
-		printf("error importing %s\n", yygotominor.yy9->name.c_str());
+		printf("error importing %s\n", yymsp[-2].minor.yy9->name.c_str());
 		context->error = 1;
 	} else {
-		yygotominor.yy9->children = zidlimport->children;
-		yygotominor.yy9->set_parent(yygotominor.yy9->children);
+		yymsp[-2].minor.yy9->children = zidlimport->children;
+		yymsp[-2].minor.yy9->set_parent(yymsp[-2].minor.yy9->children);
 		zidlimport->children.clear();
 		delete zidlimport;
 	}
 }
-#line 885 "zidl.c"
+#line 1014 "zidl.c"
         break;
       case 6: /* programbody ::= NAMESPACE IDENTIFIER COLON LINEBREAK INDENT namespacelist DEDENT */
 #line 100 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Namespace;
-	yygotominor.yy9->name = yymsp[-5].minor.yy0.tok;
-	yygotominor.yy9->children = yymsp[-1].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-6].minor.yy9 = new node();
+	yymsp[-6].minor.yy9->type = _Namespace;
+	yymsp[-6].minor.yy9->name = yymsp[-5].minor.yy0.tok;
+	yymsp[-6].minor.yy9->children = yymsp[-1].minor.yy9->children;
+	yymsp[-6].minor.yy9->set_parent(yymsp[-6].minor.yy9->children);
 	yymsp[-1].minor.yy9->children.clear();
 	delete yymsp[-1].minor.yy9;
 }
-#line 898 "zidl.c"
+#line 1027 "zidl.c"
         break;
       case 7: /* programbody ::= DQSTR */
 #line 110 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _String;
-	yygotominor.yy9->name = stripquotes(yymsp[0].minor.yy0.tok);
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _String;
+	yylhsminor.yy9->name = stripquotes(yymsp[0].minor.yy0.tok);
 }
-#line 907 "zidl.c"
+#line 1036 "zidl.c"
+  yymsp[0].minor.yy9 = yylhsminor.yy9;
         break;
       case 9: /* namespacelist ::= */
 #line 121 "zidl.y"
 {
-	yygotominor.yy9 = new node();
+	yymsp[1].minor.yy9 = new node();
 }
-#line 914 "zidl.c"
+#line 1044 "zidl.c"
         break;
       case 10: /* namespacebody ::= DLNAME DQSTR LINEBREAK */
 #line 125 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _DlName;
-	yygotominor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
+	yymsp[-2].minor.yy9 = new node();
+	yymsp[-2].minor.yy9->type = _DlName;
+	yymsp[-2].minor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
 }
-#line 923 "zidl.c"
+#line 1053 "zidl.c"
         break;
       case 11: /* namespacebody ::= ENUM IDENTIFIER COLON LINEBREAK INDENT enumlist DEDENT */
 #line 131 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Enum;
-	yygotominor.yy9->name = yymsp[-5].minor.yy0.tok;
-	yygotominor.yy9->children = yymsp[-1].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-6].minor.yy9 = new node();
+	yymsp[-6].minor.yy9->type = _Enum;
+	yymsp[-6].minor.yy9->name = yymsp[-5].minor.yy0.tok;
+	yymsp[-6].minor.yy9->children = yymsp[-1].minor.yy9->children;
+	yymsp[-6].minor.yy9->set_parent(yymsp[-6].minor.yy9->children);
 	yymsp[-1].minor.yy9->children.clear();
 	delete yymsp[-1].minor.yy9;
 }
-#line 936 "zidl.c"
+#line 1066 "zidl.c"
         break;
       case 12: /* namespacebody ::= ENUM COLON LINEBREAK INDENT enumlist DEDENT */
 #line 141 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Enum;
-	yygotominor.yy9->children = yymsp[-1].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-5].minor.yy9 = new node();
+	yymsp[-5].minor.yy9->type = _Enum;
+	yymsp[-5].minor.yy9->children = yymsp[-1].minor.yy9->children;
+	yymsp[-5].minor.yy9->set_parent(yymsp[-5].minor.yy9->children);
 	yymsp[-1].minor.yy9->children.clear();
 }
-#line 947 "zidl.c"
+#line 1077 "zidl.c"
         break;
       case 13: /* namespacebody ::= classdef */
       case 27: /* classbody ::= classdef */ yytestcase(yyruleno==27);
       case 28: /* classbody ::= memberbody */ yytestcase(yyruleno==28);
 #line 149 "zidl.y"
 {
-	yygotominor.yy9 = yymsp[0].minor.yy9;
+	yylhsminor.yy9 = yymsp[0].minor.yy9;
 }
-#line 956 "zidl.c"
+#line 1086 "zidl.c"
+  yymsp[0].minor.yy9 = yylhsminor.yy9;
         break;
       case 14: /* namespacebody ::= PDEF IDENTIFIER OPENPAREN argumentlist CLOSEPAREN COLON membertype LINEBREAK */
 #line 153 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _CallbackType;
-	yygotominor.yy9->name = yymsp[-6].minor.yy0.tok;
-	yygotominor.yy9->metatype = yymsp[-1].minor.yy9;
-	yygotominor.yy9->children = yymsp[-4].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-7].minor.yy9 = new node();
+	yymsp[-7].minor.yy9->type = _CallbackType;
+	yymsp[-7].minor.yy9->name = yymsp[-6].minor.yy0.tok;
+	yymsp[-7].minor.yy9->metatype = yymsp[-1].minor.yy9;
+	yymsp[-7].minor.yy9->children = yymsp[-4].minor.yy9->children;
+	yymsp[-7].minor.yy9->set_parent(yymsp[-7].minor.yy9->children);
 	yymsp[-4].minor.yy9->children.clear();
 	delete yymsp[-4].minor.yy9;
 }
-#line 970 "zidl.c"
+#line 1101 "zidl.c"
         break;
       case 15: /* namespacebody ::= PDEF IDENTIFIER OPENPAREN argumentlist CLOSEPAREN LINEBREAK */
 #line 164 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _CallbackType;
-	yygotominor.yy9->name = yymsp[-4].minor.yy0.tok;
-	yygotominor.yy9->children = yymsp[-2].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-5].minor.yy9 = new node();
+	yymsp[-5].minor.yy9->type = _CallbackType;
+	yymsp[-5].minor.yy9->name = yymsp[-4].minor.yy0.tok;
+	yymsp[-5].minor.yy9->children = yymsp[-2].minor.yy9->children;
+	yymsp[-5].minor.yy9->set_parent(yymsp[-5].minor.yy9->children);
 	yymsp[-2].minor.yy9->children.clear();
 	delete yymsp[-2].minor.yy9;
 }
-#line 983 "zidl.c"
+#line 1114 "zidl.c"
         break;
       case 16: /* namespacebody ::= DQSTR LINEBREAK */
       case 30: /* classbody ::= DQSTR LINEBREAK */ yytestcase(yyruleno==30);
 #line 174 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _String;
-	yygotominor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _String;
+	yylhsminor.yy9->name = stripquotes(yymsp[-1].minor.yy0.tok);
 }
-#line 993 "zidl.c"
+#line 1124 "zidl.c"
+  yymsp[-1].minor.yy9 = yylhsminor.yy9;
         break;
       case 17: /* argumentlist ::= argumentlist COMMA argumentbody */
 #line 180 "zidl.y"
 {
-	yygotominor.yy9 = yymsp[-2].minor.yy9;
-	yygotominor.yy9->add_child(yymsp[0].minor.yy9);
+	yylhsminor.yy9 = yymsp[-2].minor.yy9;
+	yylhsminor.yy9->add_child(yymsp[0].minor.yy9);
 }
-#line 1001 "zidl.c"
+#line 1133 "zidl.c"
+  yymsp[-2].minor.yy9 = yylhsminor.yy9;
         break;
       case 18: /* argumentlist ::= argumentbody */
 #line 185 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _ArgumentList;
-	yygotominor.yy9->add_child(yymsp[0].minor.yy9);
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _ArgumentList;
+	yylhsminor.yy9->add_child(yymsp[0].minor.yy9);
 }
-#line 1010 "zidl.c"
+#line 1143 "zidl.c"
+  yymsp[0].minor.yy9 = yylhsminor.yy9;
         break;
       case 19: /* argumentlist ::= */
 #line 191 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _ArgumentList;
+	yymsp[1].minor.yy9 = new node();
+	yymsp[1].minor.yy9->type = _ArgumentList;
 }
-#line 1018 "zidl.c"
+#line 1152 "zidl.c"
         break;
       case 20: /* argumentbody ::= membertype IDENTIFIER argumentdefault */
 #line 196 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Argument;
-	yygotominor.yy9->name = yymsp[-1].minor.yy0.tok;
-	yygotominor.yy9->metatype = yymsp[-2].minor.yy9;
-	if (yymsp[0].minor.yy9 != 0) yygotominor.yy9->modifiers.push_back(yymsp[0].minor.yy9);
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _Argument;
+	yylhsminor.yy9->name = yymsp[-1].minor.yy0.tok;
+	yylhsminor.yy9->metatype = yymsp[-2].minor.yy9;
+	if (yymsp[0].minor.yy9 != 0) yylhsminor.yy9->modifiers.push_back(yymsp[0].minor.yy9);
 }
-#line 1029 "zidl.c"
+#line 1163 "zidl.c"
+  yymsp[-2].minor.yy9 = yylhsminor.yy9;
         break;
       case 21: /* argumentdefault ::= */
 #line 204 "zidl.y"
 { 
 	/* OK */
+	yymsp[1].minor.yy9 = 0;
 }
-#line 1036 "zidl.c"
+#line 1172 "zidl.c"
         break;
       case 22: /* argumentdefault ::= EQ DIGITS */
-#line 208 "zidl.y"
+#line 209 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _EnumValue;
-	yygotominor.yy9->intvalue = atoi(yymsp[0].minor.yy0.tok);
+	yymsp[-1].minor.yy9 = new node();
+	yymsp[-1].minor.yy9->type = _EnumValue;
+	yymsp[-1].minor.yy9->intvalue = atoi(yymsp[0].minor.yy0.tok);
 }
-#line 1045 "zidl.c"
+#line 1181 "zidl.c"
         break;
       case 23: /* classdef ::= CLASS IDENTIFIER COLON LINEBREAK INDENT classlist DEDENT */
-#line 214 "zidl.y"
+#line 215 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Class;
-	yygotominor.yy9->name = yymsp[-5].minor.yy0.tok;
-	yygotominor.yy9->children = yymsp[-1].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-6].minor.yy9 = new node();
+	yymsp[-6].minor.yy9->type = _Class;
+	yymsp[-6].minor.yy9->name = yymsp[-5].minor.yy0.tok;
+	yymsp[-6].minor.yy9->children = yymsp[-1].minor.yy9->children;
+	yymsp[-6].minor.yy9->set_parent(yymsp[-6].minor.yy9->children);
 	yymsp[-1].minor.yy9->children.clear();
 	delete yymsp[-1].minor.yy9;
 }
-#line 1058 "zidl.c"
+#line 1194 "zidl.c"
         break;
       case 24: /* classdef ::= CLASS IDENTIFIER COLON LINEBREAK */
-#line 224 "zidl.y"
+#line 225 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Class;
-	yygotominor.yy9->name = yymsp[-2].minor.yy0.tok;
+	yymsp[-3].minor.yy9 = new node();
+	yymsp[-3].minor.yy9->type = _Class;
+	yymsp[-3].minor.yy9->name = yymsp[-2].minor.yy0.tok;
 }
-#line 1067 "zidl.c"
+#line 1203 "zidl.c"
         break;
       case 25: /* classlist ::= classlist classbody */
       case 44: /* typemodifierlist ::= typemodifierlist typemodifier */ yytestcase(yyruleno==44);
       case 57: /* enumlist ::= enumlist enumbody */ yytestcase(yyruleno==57);
-#line 230 "zidl.y"
+#line 231 "zidl.y"
 {
-	yygotominor.yy9 = yymsp[-1].minor.yy9;
-	yygotominor.yy9->add_child(yymsp[0].minor.yy9);
+	yylhsminor.yy9 = yymsp[-1].minor.yy9;
+	yylhsminor.yy9->add_child(yymsp[0].minor.yy9);
 }
-#line 1077 "zidl.c"
+#line 1213 "zidl.c"
+  yymsp[-1].minor.yy9 = yylhsminor.yy9;
         break;
       case 26: /* classlist ::= */
-#line 235 "zidl.y"
+#line 236 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _ClassList;
+	yymsp[1].minor.yy9 = new node();
+	yymsp[1].minor.yy9->type = _ClassList;
 }
-#line 1085 "zidl.c"
+#line 1222 "zidl.c"
         break;
       case 29: /* classbody ::= UNION COLON LINEBREAK INDENT unionlist DEDENT */
-#line 248 "zidl.y"
+#line 249 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Union;
+	yymsp[-5].minor.yy9 = new node();
+	yymsp[-5].minor.yy9->type = _Union;
 	static int unioncounter = 0;
 	std::stringstream idstrm;
 	idstrm << "union_" << std::hex << std::setw(8) << std::setfill('0') << unioncounter;
-	yygotominor.yy9->name = idstrm.str();
+	yymsp[-5].minor.yy9->name = idstrm.str();
 	unioncounter++;
-	yygotominor.yy9->children = yymsp[-1].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-5].minor.yy9->children = yymsp[-1].minor.yy9->children;
+	yymsp[-5].minor.yy9->set_parent(yymsp[-5].minor.yy9->children);
 	yymsp[-1].minor.yy9->children.clear();
 	delete yymsp[-1].minor.yy9;
 }
-#line 1102 "zidl.c"
+#line 1239 "zidl.c"
         break;
       case 31: /* classbody ::= DEF methodmodifier IDENTIFIER OPENPAREN argumentlist CLOSEPAREN COLON membertype LINEBREAK */
-#line 268 "zidl.y"
+#line 269 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Method;
-	yygotominor.yy9->name = yymsp[-6].minor.yy0.tok;
-	yygotominor.yy9->metatype = yymsp[-1].minor.yy9;
-	yygotominor.yy9->children = yymsp[-4].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-8].minor.yy9 = new node();
+	yymsp[-8].minor.yy9->type = _Method;
+	yymsp[-8].minor.yy9->name = yymsp[-6].minor.yy0.tok;
+	yymsp[-8].minor.yy9->metatype = yymsp[-1].minor.yy9;
+	yymsp[-8].minor.yy9->children = yymsp[-4].minor.yy9->children;
+	yymsp[-8].minor.yy9->set_parent(yymsp[-8].minor.yy9->children);
 	yymsp[-4].minor.yy9->children.clear();
 	delete yymsp[-4].minor.yy9;
 	if (yymsp[-7].minor.yy9 != 0)
-		yygotominor.yy9->modifiers.push_back(yymsp[-7].minor.yy9);
+		yymsp[-8].minor.yy9->modifiers.push_back(yymsp[-7].minor.yy9);
 }
-#line 1118 "zidl.c"
+#line 1255 "zidl.c"
         break;
       case 32: /* classbody ::= DEF methodmodifier IDENTIFIER OPENPAREN argumentlist CLOSEPAREN LINEBREAK */
-#line 281 "zidl.y"
+#line 282 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Method;
-	yygotominor.yy9->name = yymsp[-4].minor.yy0.tok;
-	yygotominor.yy9->children = yymsp[-2].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yymsp[-6].minor.yy9 = new node();
+	yymsp[-6].minor.yy9->type = _Method;
+	yymsp[-6].minor.yy9->name = yymsp[-4].minor.yy0.tok;
+	yymsp[-6].minor.yy9->children = yymsp[-2].minor.yy9->children;
+	yymsp[-6].minor.yy9->set_parent(yymsp[-6].minor.yy9->children);
 	yymsp[-2].minor.yy9->children.clear();
 	delete yymsp[-2].minor.yy9;
 	if (yymsp[-5].minor.yy9 != 0)
-		yygotominor.yy9->modifiers.push_back(yymsp[-5].minor.yy9);
+		yymsp[-6].minor.yy9->modifiers.push_back(yymsp[-5].minor.yy9);
 }
-#line 1133 "zidl.c"
+#line 1270 "zidl.c"
         break;
       case 33: /* classbody ::= ITERATOR IDENTIFIER COLON FOR IDENTIFIER IN IDENTIFIER LINEBREAK */
-#line 293 "zidl.y"
+#line 294 "zidl.y"
 {
 	/* ignore iterators */
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Ignore;
+	yymsp[-7].minor.yy9 = new node();
+	yymsp[-7].minor.yy9->type = _Ignore;
 }
-#line 1142 "zidl.c"
+#line 1279 "zidl.c"
         break;
       case 34: /* unionlist ::= unionlist memberbody */
-#line 299 "zidl.y"
+#line 300 "zidl.y"
 {
-	yygotominor.yy9 = yymsp[-1].minor.yy9;
-	yygotominor.yy9->add_child(yymsp[0].minor.yy9);	
+	yylhsminor.yy9 = yymsp[-1].minor.yy9;
+	yylhsminor.yy9->add_child(yymsp[0].minor.yy9);	
 }
-#line 1150 "zidl.c"
+#line 1287 "zidl.c"
+  yymsp[-1].minor.yy9 = yylhsminor.yy9;
         break;
       case 35: /* unionlist ::= */
-#line 304 "zidl.y"
+#line 305 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _UnionList;
+	yymsp[1].minor.yy9 = new node();
+	yymsp[1].minor.yy9->type = _UnionList;
 }
-#line 1158 "zidl.c"
+#line 1296 "zidl.c"
         break;
       case 36: /* methodmodifier ::= STATIC */
-#line 309 "zidl.y"
+#line 310 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _TypeModifier;
-	yygotominor.yy9->name = "static";
+	yymsp[0].minor.yy9 = new node();
+	yymsp[0].minor.yy9->type = _TypeModifier;
+	yymsp[0].minor.yy9->name = "static";
 }
-#line 1167 "zidl.c"
+#line 1305 "zidl.c"
         break;
       case 37: /* methodmodifier ::= */
-#line 315 "zidl.y"
+#line 316 "zidl.y"
 {
-	/* OK */
+	yymsp[1].minor.yy9 = 0;
 }
-#line 1174 "zidl.c"
+#line 1312 "zidl.c"
         break;
       case 38: /* memberbody ::= MEMBER membertype IDENTIFIER LINEBREAK */
-#line 319 "zidl.y"
+#line 320 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Member;
-	yygotominor.yy9->name = yymsp[-1].minor.yy0.tok;
-	yygotominor.yy9->metatype = yymsp[-2].minor.yy9;
+	yymsp[-3].minor.yy9 = new node();
+	yymsp[-3].minor.yy9->type = _Member;
+	yymsp[-3].minor.yy9->name = yymsp[-1].minor.yy0.tok;
+	yymsp[-3].minor.yy9->metatype = yymsp[-2].minor.yy9;
 }
-#line 1184 "zidl.c"
+#line 1322 "zidl.c"
         break;
       case 39: /* membertype ::= typemodifierlist typename */
-#line 326 "zidl.y"
+#line 327 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Type;
-	yygotominor.yy9->name = yymsp[0].minor.yy0.tok;
-	yygotominor.yy9->modifiers = yymsp[-1].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->children);
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _Type;
+	yylhsminor.yy9->name = yymsp[0].minor.yy0.tok;
+	yylhsminor.yy9->modifiers = yymsp[-1].minor.yy9->children;
+	yylhsminor.yy9->set_parent(yylhsminor.yy9->children);
 	yymsp[-1].minor.yy9->children.clear();
 	delete yymsp[-1].minor.yy9;
 }
-#line 1197 "zidl.c"
+#line 1335 "zidl.c"
+  yymsp[-1].minor.yy9 = yylhsminor.yy9;
         break;
       case 40: /* membertype ::= typemodifierlist typename OPENSQRPAREN arrayindexer CLOSESQRPAREN */
-#line 336 "zidl.y"
+#line 337 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Type;
-	yygotominor.yy9->name = yymsp[-3].minor.yy0.tok;
-	yygotominor.yy9->modifiers = yymsp[-4].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->modifiers);
-	yygotominor.yy9->add_child(yymsp[-1].minor.yy9);
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _Type;
+	yylhsminor.yy9->name = yymsp[-3].minor.yy0.tok;
+	yylhsminor.yy9->modifiers = yymsp[-4].minor.yy9->children;
+	yylhsminor.yy9->set_parent(yylhsminor.yy9->modifiers);
+	yylhsminor.yy9->add_child(yymsp[-1].minor.yy9);
 	yymsp[-4].minor.yy9->children.clear();
 	delete yymsp[-4].minor.yy9;
 }
-#line 1211 "zidl.c"
+#line 1350 "zidl.c"
+  yymsp[-4].minor.yy9 = yylhsminor.yy9;
         break;
       case 41: /* membertype ::= typemodifierlist typename OPENSQRPAREN arrayindexer CLOSESQRPAREN OPENSQRPAREN arrayindexer CLOSESQRPAREN */
-#line 347 "zidl.y"
+#line 348 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Type;
-	yygotominor.yy9->name = yymsp[-6].minor.yy0.tok;
-	yygotominor.yy9->modifiers = yymsp[-7].minor.yy9->children;
-	yygotominor.yy9->set_parent(yygotominor.yy9->modifiers);
-	yygotominor.yy9->add_child(yymsp[-4].minor.yy9);
-	yygotominor.yy9->add_child(yymsp[-1].minor.yy9);
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _Type;
+	yylhsminor.yy9->name = yymsp[-6].minor.yy0.tok;
+	yylhsminor.yy9->modifiers = yymsp[-7].minor.yy9->children;
+	yylhsminor.yy9->set_parent(yylhsminor.yy9->modifiers);
+	yylhsminor.yy9->add_child(yymsp[-4].minor.yy9);
+	yylhsminor.yy9->add_child(yymsp[-1].minor.yy9);
 	yymsp[-7].minor.yy9->children.clear();
 	delete yymsp[-7].minor.yy9;
 }
-#line 1226 "zidl.c"
+#line 1366 "zidl.c"
+  yymsp[-7].minor.yy9 = yylhsminor.yy9;
         break;
       case 42: /* arrayindexer ::= IDENTIFIER */
-#line 359 "zidl.y"
+#line 360 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Indexer;
-	yygotominor.yy9->name = yymsp[0].minor.yy0.tok;
-	yygotominor.yy9->intvalue = 0;
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _Indexer;
+	yylhsminor.yy9->name = yymsp[0].minor.yy0.tok;
+	yylhsminor.yy9->intvalue = 0;
 }
-#line 1236 "zidl.c"
+#line 1377 "zidl.c"
+  yymsp[0].minor.yy9 = yylhsminor.yy9;
         break;
       case 43: /* arrayindexer ::= DIGITS */
-#line 366 "zidl.y"
+#line 367 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _Indexer;
-	yygotominor.yy9->name = yymsp[0].minor.yy0.tok;
-	yygotominor.yy9->intvalue = atoi(yymsp[0].minor.yy0.tok);
+	yylhsminor.yy9 = new node();
+	yylhsminor.yy9->type = _Indexer;
+	yylhsminor.yy9->name = yymsp[0].minor.yy0.tok;
+	yylhsminor.yy9->intvalue = atoi(yymsp[0].minor.yy0.tok);
 }
-#line 1246 "zidl.c"
+#line 1388 "zidl.c"
+  yymsp[0].minor.yy9 = yylhsminor.yy9;
         break;
       case 45: /* typemodifierlist ::= */
-#line 378 "zidl.y"
+#line 379 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _TypeModifierList;
+	yymsp[1].minor.yy9 = new node();
+	yymsp[1].minor.yy9->type = _TypeModifierList;
 }
-#line 1254 "zidl.c"
+#line 1397 "zidl.c"
         break;
       case 46: /* typemodifier ::= OUT */
-#line 383 "zidl.y"
+#line 384 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _TypeModifier;
-	yygotominor.yy9->name = "out";
+	yymsp[0].minor.yy9 = new node();
+	yymsp[0].minor.yy9->type = _TypeModifier;
+	yymsp[0].minor.yy9->name = "out";
 }
-#line 1263 "zidl.c"
+#line 1406 "zidl.c"
         break;
       case 47: /* typemodifier ::= NOREF */
-#line 389 "zidl.y"
+#line 390 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _TypeModifier;
-	yygotominor.yy9->name = "noref";
+	yymsp[0].minor.yy9 = new node();
+	yymsp[0].minor.yy9->type = _TypeModifier;
+	yymsp[0].minor.yy9->name = "noref";
 }
-#line 1272 "zidl.c"
+#line 1415 "zidl.c"
         break;
       case 48: /* typemodifier ::= NO_PYTHON */
-#line 395 "zidl.y"
+#line 396 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _TypeModifier;
-	yygotominor.yy9->name = "no_python";
+	yymsp[0].minor.yy9 = new node();
+	yymsp[0].minor.yy9->type = _TypeModifier;
+	yymsp[0].minor.yy9->name = "no_python";
 }
-#line 1281 "zidl.c"
+#line 1424 "zidl.c"
         break;
       case 49: /* typename ::= IDENTIFIER */
       case 50: /* typename ::= INT */ yytestcase(yyruleno==50);
@@ -1287,81 +1430,82 @@ static void yy_reduce(
       case 54: /* typename ::= CHAR */ yytestcase(yyruleno==54);
       case 55: /* typename ::= PVOID */ yytestcase(yyruleno==55);
       case 56: /* typename ::= BOOL */ yytestcase(yyruleno==56);
-#line 401 "zidl.y"
+#line 402 "zidl.y"
 {
-	yygotominor.yy0 = yymsp[0].minor.yy0;
+	yylhsminor.yy0 = yymsp[0].minor.yy0;
 }
-#line 1295 "zidl.c"
+#line 1438 "zidl.c"
+  yymsp[0].minor.yy0 = yylhsminor.yy0;
         break;
       case 58: /* enumlist ::= */
-#line 438 "zidl.y"
+#line 439 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _EnumList;
+	yymsp[1].minor.yy9 = new node();
+	yymsp[1].minor.yy9->type = _EnumList;
 }
-#line 1303 "zidl.c"
+#line 1447 "zidl.c"
         break;
       case 59: /* enumbody ::= SET IDENTIFIER EQ DIGITS LINEBREAK */
-#line 443 "zidl.y"
+#line 444 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _EnumValue;
-	yygotominor.yy9->name = yymsp[-3].minor.yy0.tok;
-	yygotominor.yy9->intvalue = atoi(yymsp[-1].minor.yy0.tok);
+	yymsp[-4].minor.yy9 = new node();
+	yymsp[-4].minor.yy9->type = _EnumValue;
+	yymsp[-4].minor.yy9->name = yymsp[-3].minor.yy0.tok;
+	yymsp[-4].minor.yy9->intvalue = atoi(yymsp[-1].minor.yy0.tok);
 }
-#line 1313 "zidl.c"
+#line 1457 "zidl.c"
         break;
       case 60: /* enumbody ::= SET IDENTIFIER EQ BIT bitvalues LINEBREAK */
-#line 450 "zidl.y"
+#line 451 "zidl.y"
 {
-	yygotominor.yy9 = new node();
-	yygotominor.yy9->type = _EnumValue;
-	yygotominor.yy9->name = yymsp[-4].minor.yy0.tok;
-	yygotominor.yy9->intvalue = yymsp[-1].minor.yy0.tokval;
+	yymsp[-5].minor.yy9 = new node();
+	yymsp[-5].minor.yy9->type = _EnumValue;
+	yymsp[-5].minor.yy9->name = yymsp[-4].minor.yy0.tok;
+	yymsp[-5].minor.yy9->intvalue = yymsp[-1].minor.yy0.tokval;
 }
-#line 1323 "zidl.c"
+#line 1467 "zidl.c"
         break;
       case 61: /* bitvalues ::= bitvalues COMMA DIGITS */
-#line 457 "zidl.y"
+#line 458 "zidl.y"
 {
-	yygotominor.yy0.tokval = yymsp[-2].minor.yy0.tokval | (1 << atoi(yymsp[0].minor.yy0.tok));
+	yylhsminor.yy0.tokval = yymsp[-2].minor.yy0.tokval | (1 << atoi(yymsp[0].minor.yy0.tok));
 }
-#line 1330 "zidl.c"
+#line 1474 "zidl.c"
+  yymsp[-2].minor.yy0 = yylhsminor.yy0;
         break;
       case 62: /* bitvalues ::= DIGITS */
-#line 461 "zidl.y"
+#line 462 "zidl.y"
 {
-	yygotominor.yy0.tokval = 1 << atoi(yymsp[0].minor.yy0.tok);
+	yylhsminor.yy0.tokval = 1 << atoi(yymsp[0].minor.yy0.tok);
 }
-#line 1337 "zidl.c"
+#line 1482 "zidl.c"
+  yymsp[0].minor.yy0 = yylhsminor.yy0;
         break;
       default:
         break;
+/********** End reduce actions ************************************************/
   };
+  assert( yyruleno<sizeof(yyRuleInfo)/sizeof(yyRuleInfo[0]) );
   yygoto = yyRuleInfo[yyruleno].lhs;
   yysize = yyRuleInfo[yyruleno].nrhs;
-  yypParser->yyidx -= yysize;
-  yyact = yy_find_reduce_action(yymsp[-yysize].stateno,(YYCODETYPE)yygoto);
-  if( yyact < YYNSTATE ){
-#ifdef NDEBUG
-    /* If we are not debugging and the reduce action popped at least
-    ** one element off the stack, then we can push the new element back
-    ** onto the stack here, and skip the stack overflow test in yy_shift().
-    ** That gives a significant speed improvement. */
-    if( yysize ){
-      yypParser->yyidx++;
-      yymsp -= yysize-1;
-      yymsp->stateno = (YYACTIONTYPE)yyact;
-      yymsp->major = (YYCODETYPE)yygoto;
-      yymsp->minor = yygotominor;
-    }else
-#endif
-    {
-      yy_shift(yypParser,yyact,yygoto,&yygotominor);
-    }
-  }else{
-    assert( yyact == YYNSTATE + YYNRULE + 1 );
+  yyact = yy_find_reduce_action(yymsp[yysize].stateno,(YYCODETYPE)yygoto);
+
+  /* There are no SHIFTREDUCE actions on nonterminals because the table
+  ** generator has simplified them to pure REDUCE actions. */
+  assert( !(yyact>YY_MAX_SHIFT && yyact<=YY_MAX_SHIFTREDUCE) );
+
+  /* It is not possible for a REDUCE to be followed by an error */
+  assert( yyact!=YY_ERROR_ACTION );
+
+  if( yyact==YY_ACCEPT_ACTION ){
+    yypParser->yytos += yysize;
     yy_accept(yypParser);
+  }else{
+    yymsp += yysize+1;
+    yypParser->yytos = yymsp;
+    yymsp->stateno = (YYACTIONTYPE)yyact;
+    yymsp->major = (YYCODETYPE)yygoto;
+    yyTraceShift(yypParser, yyact);
   }
 }
 
@@ -1378,9 +1522,11 @@ static void yy_parse_failed(
     fprintf(yyTraceFILE,"%sFail!\n",yyTracePrompt);
   }
 #endif
-  while( yypParser->yyidx>=0 ) yy_pop_parser_stack(yypParser);
+  while( yypParser->yytos>yypParser->yystack ) yy_pop_parser_stack(yypParser);
   /* Here code is inserted which will be executed whenever the
   ** parser fails */
+/************ Begin %parse_failure code ***************************************/
+/************ End %parse_failure code *****************************************/
   ParseARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
 #endif /* YYNOERRORRECOVERY */
@@ -1391,14 +1537,16 @@ static void yy_parse_failed(
 static void yy_syntax_error(
   yyParser *yypParser,           /* The parser */
   int yymajor,                   /* The major type of the error token */
-  YYMINORTYPE yyminor            /* The minor type of the error token */
+  ParseTOKENTYPE yyminor         /* The minor type of the error token */
 ){
   ParseARG_FETCH;
-#define TOKEN (yyminor.yy0)
+#define TOKEN yyminor
+/************ Begin %syntax_error code ****************************************/
 #line 20 "zidl.y"
 
 	context->error = 1;
-#line 1402 "zidl.c"
+#line 1549 "zidl.c"
+/************ End %syntax_error code ******************************************/
   ParseARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
 
@@ -1414,13 +1562,18 @@ static void yy_accept(
     fprintf(yyTraceFILE,"%sAccept!\n",yyTracePrompt);
   }
 #endif
-  while( yypParser->yyidx>=0 ) yy_pop_parser_stack(yypParser);
+#ifndef YYNOERRORRECOVERY
+  yypParser->yyerrcnt = -1;
+#endif
+  assert( yypParser->yytos==yypParser->yystack );
   /* Here code is inserted which will be executed whenever the
   ** parser accepts */
+/*********** Begin %parse_accept code *****************************************/
 #line 24 "zidl.y"
 
 	/* printf("parsing complete!\n"); */
-#line 1424 "zidl.c"
+#line 1576 "zidl.c"
+/*********** End %parse_accept code *******************************************/
   ParseARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
 
@@ -1450,50 +1603,41 @@ void Parse(
   ParseARG_PDECL               /* Optional %extra_argument parameter */
 ){
   YYMINORTYPE yyminorunion;
-  int yyact;            /* The parser action. */
+  unsigned int yyact;   /* The parser action. */
+#if !defined(YYERRORSYMBOL) && !defined(YYNOERRORRECOVERY)
   int yyendofinput;     /* True if we are at the end of input */
+#endif
 #ifdef YYERRORSYMBOL
   int yyerrorhit = 0;   /* True if yymajor has invoked an error */
 #endif
   yyParser *yypParser;  /* The parser */
 
-  /* (re)initialize the parser, if necessary */
   yypParser = (yyParser*)yyp;
-  if( yypParser->yyidx<0 ){
-#if YYSTACKDEPTH<=0
-    if( yypParser->yystksz <=0 ){
-      /*memset(&yyminorunion, 0, sizeof(yyminorunion));*/
-      yyminorunion = yyzerominor;
-      yyStackOverflow(yypParser, &yyminorunion);
-      return;
-    }
-#endif
-    yypParser->yyidx = 0;
-    yypParser->yyerrcnt = -1;
-    yypParser->yystack[0].stateno = 0;
-    yypParser->yystack[0].major = 0;
-  }
-  yyminorunion.yy0 = yyminor;
+  assert( yypParser->yytos!=0 );
+#if !defined(YYERRORSYMBOL) && !defined(YYNOERRORRECOVERY)
   yyendofinput = (yymajor==0);
+#endif
   ParseARG_STORE;
 
 #ifndef NDEBUG
   if( yyTraceFILE ){
-    fprintf(yyTraceFILE,"%sInput %s\n",yyTracePrompt,yyTokenName[yymajor]);
+    fprintf(yyTraceFILE,"%sInput '%s'\n",yyTracePrompt,yyTokenName[yymajor]);
   }
 #endif
 
   do{
     yyact = yy_find_shift_action(yypParser,(YYCODETYPE)yymajor);
-    if( yyact<YYNSTATE ){
-      assert( !yyendofinput );  /* Impossible to shift the $ token */
-      yy_shift(yypParser,yyact,yymajor,&yyminorunion);
+    if( yyact <= YY_MAX_SHIFTREDUCE ){
+      yy_shift(yypParser,yyact,yymajor,yyminor);
+#ifndef YYNOERRORRECOVERY
       yypParser->yyerrcnt--;
+#endif
       yymajor = YYNOCODE;
-    }else if( yyact < YYNSTATE + YYNRULE ){
-      yy_reduce(yypParser,yyact-YYNSTATE);
+    }else if( yyact <= YY_MAX_REDUCE ){
+      yy_reduce(yypParser,yyact-YY_MIN_REDUCE);
     }else{
       assert( yyact == YY_ERROR_ACTION );
+      yyminorunion.yy0 = yyminor;
 #ifdef YYERRORSYMBOL
       int yymx;
 #endif
@@ -1523,9 +1667,9 @@ void Parse(
       **
       */
       if( yypParser->yyerrcnt<0 ){
-        yy_syntax_error(yypParser,yymajor,yyminorunion);
+        yy_syntax_error(yypParser,yymajor,yyminor);
       }
-      yymx = yypParser->yystack[yypParser->yyidx].major;
+      yymx = yypParser->yytos->major;
       if( yymx==YYERRORSYMBOL || yyerrorhit ){
 #ifndef NDEBUG
         if( yyTraceFILE ){
@@ -1533,26 +1677,26 @@ void Parse(
              yyTracePrompt,yyTokenName[yymajor]);
         }
 #endif
-        yy_destructor(yypParser, (YYCODETYPE)yymajor,&yyminorunion);
+        yy_destructor(yypParser, (YYCODETYPE)yymajor, &yyminorunion);
         yymajor = YYNOCODE;
       }else{
-         while(
-          yypParser->yyidx >= 0 &&
-          yymx != YYERRORSYMBOL &&
-          (yyact = yy_find_reduce_action(
-                        yypParser->yystack[yypParser->yyidx].stateno,
-                        YYERRORSYMBOL)) >= YYNSTATE
+        while( yypParser->yytos >= yypParser->yystack
+            && yymx != YYERRORSYMBOL
+            && (yyact = yy_find_reduce_action(
+                        yypParser->yytos->stateno,
+                        YYERRORSYMBOL)) >= YY_MIN_REDUCE
         ){
           yy_pop_parser_stack(yypParser);
         }
-        if( yypParser->yyidx < 0 || yymajor==0 ){
+        if( yypParser->yytos < yypParser->yystack || yymajor==0 ){
           yy_destructor(yypParser,(YYCODETYPE)yymajor,&yyminorunion);
           yy_parse_failed(yypParser);
+#ifndef YYNOERRORRECOVERY
+          yypParser->yyerrcnt = -1;
+#endif
           yymajor = YYNOCODE;
         }else if( yymx!=YYERRORSYMBOL ){
-          YYMINORTYPE u2;
-          u2.YYERRSYMDT = 0;
-          yy_shift(yypParser,yyact,YYERRORSYMBOL,&u2);
+          yy_shift(yypParser,yyact,YYERRORSYMBOL,yyminor);
         }
       }
       yypParser->yyerrcnt = 3;
@@ -1565,7 +1709,7 @@ void Parse(
       ** Applications can set this macro (for example inside %include) if
       ** they intend to abandon the parse upon the first syntax error seen.
       */
-      yy_syntax_error(yypParser,yymajor,yyminorunion);
+      yy_syntax_error(yypParser,yymajor, yyminor);
       yy_destructor(yypParser,(YYCODETYPE)yymajor,&yyminorunion);
       yymajor = YYNOCODE;
       
@@ -1580,16 +1724,31 @@ void Parse(
       ** three input tokens have been successfully shifted.
       */
       if( yypParser->yyerrcnt<=0 ){
-        yy_syntax_error(yypParser,yymajor,yyminorunion);
+        yy_syntax_error(yypParser,yymajor, yyminor);
       }
       yypParser->yyerrcnt = 3;
       yy_destructor(yypParser,(YYCODETYPE)yymajor,&yyminorunion);
       if( yyendofinput ){
         yy_parse_failed(yypParser);
+#ifndef YYNOERRORRECOVERY
+        yypParser->yyerrcnt = -1;
+#endif
       }
       yymajor = YYNOCODE;
 #endif
     }
-  }while( yymajor!=YYNOCODE && yypParser->yyidx>=0 );
+  }while( yymajor!=YYNOCODE && yypParser->yytos>yypParser->yystack );
+#ifndef NDEBUG
+  if( yyTraceFILE ){
+    yyStackEntry *i;
+    char cDiv = '[';
+    fprintf(yyTraceFILE,"%sReturn. Stack=",yyTracePrompt);
+    for(i=&yypParser->yystack[1]; i<=yypParser->yytos; i++){
+      fprintf(yyTraceFILE,"%c%s", cDiv, yyTokenName[i->major]);
+      cDiv = ' ';
+    }
+    fprintf(yyTraceFILE,"]\n");
+  }
+#endif
   return;
 }
